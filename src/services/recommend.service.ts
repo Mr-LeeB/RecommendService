@@ -1,21 +1,53 @@
 import { TfIdf } from 'natural';
+import Vector from 'vector-object';
+import { UserClass } from '~/models/user.model';
 
-interface IRecommendService {
+interface IData {
+  id: string;
+  description: string;
+}
+interface IProcessedData {
   id: string;
   content: string;
 }
-
+interface IDocumentVector {
+  id: string;
+  vector: Vector;
+}
+interface ISimilarDocument {
+  id: string;
+  score: number;
+}
 class RecommendService {
-  static formatData = (data) => {
-    const formatted = [];
+  static recommendUSer = async (userID: string) => {
+    const users = await UserClass.getAllUsers();
+
+    const formattedData: IProcessedData[] = [];
+
+    for (const user of users) {
+      const tmpObj: IProcessedData = {
+        id: user._id.toString(),
+        content: user.tags.join(' ')
+      };
+
+      formattedData.push(tmpObj);
+    }
+
+    const documentVectors = this.createVectorsFromDocs(formattedData);
+    const similarities = this.calcSimilarities(documentVectors);
+
+    return similarities;
+  };
+
+  static formatData = (data: IData[][]) => {
+    const formatted: IProcessedData[] = [];
 
     for (const [key, labels] of Object.entries(data)) {
-      let tmpObj = {};
-      const desc = labels.map(() => {
+      const desc = labels.map((l) => {
         return l.description.toLowerCase();
       });
 
-      tmpObj = {
+      const tmpObj: IProcessedData = {
         id: key,
         content: desc.join(' ')
       };
@@ -26,7 +58,7 @@ class RecommendService {
     return formatted;
   };
 
-  static createVectorsFromDocs = (processedDocs) => {
+  static createVectorsFromDocs = (processedDocs: IProcessedData[]) => {
     const tfidf = new TfIdf();
 
     processedDocs.forEach((processedDocument) => {
@@ -37,7 +69,7 @@ class RecommendService {
 
     for (let i = 0; i < processedDocs.length; i += 1) {
       const processedDocument = processedDocs[i];
-      const obj = {};
+      const obj: { [key: string]: number } = {};
 
       const items = tfidf.listTerms(i);
 
@@ -53,14 +85,15 @@ class RecommendService {
 
       documentVectors.push(documentVector);
     }
+    return documentVectors;
   };
 
-  static calcSimilarities = (docVectors) => {
+  static calcSimilarities = (docVectors: IDocumentVector[]) => {
     // number of results that you want to return.
     const MAX_SIMILAR = 20;
     // min cosine similarity score that should be returned.
     const MIN_SCORE = 0.2;
-    const data = {};
+    const data: { [key: string]: any[] } = {};
 
     for (let i = 0; i < docVectors.length; i += 1) {
       const documentVector = docVectors[i];
@@ -96,21 +129,7 @@ class RecommendService {
     return data;
   };
 
-  static getLength = () => {
-    let l = 0;
-
-    this.getComponents().forEach((k) => {
-      l += this.vector[k] * this.vector[k];
-    });
-
-    return Math.sqrt(l);
-  };
-
-  static getCosineSimilarity = (vector) => {
-    return this.getDotProduct(vector) / (this.getLength() * vector.getLength());
-  };
-
-  static getSimilarDocuments = (id, trainedData) => {
+  static getSimilarDocuments = (id: string, trainedData: IDocumentVector[]) => {
     const similarDocuments = trainedData[id];
 
     if (similarDocuments === undefined) {

@@ -48,6 +48,26 @@ recommendSchema.index({ 'recommends.posts.post': 1 });
 
 const RecommendModel = model(DOCUMENT_NAME, recommendSchema);
 
-class RecommendClass {}
+interface Recommend {
+  recommends: {
+    communities: { community: string; score: number }[];
+    users: { user: string; score: number }[];
+    posts: { post: string; score: number }[];
+  };
+}
+
+class RecommendClass {
+  static async getRecommendByUserId(userId: string) {
+    return await RecommendModel.findOne({ user: userId });
+  }
+
+  static async createRecommend(userId: string) {
+    return await RecommendModel.create({ user: userId });
+  }
+
+  static async updateRecommend(userId: string, recommends: Recommend) {
+    return await RecommendModel.updateOne({ user: userId }, { recommends });
+  }
+}
 
 export { RecommendModel, RecommendClass };

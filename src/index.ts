@@ -10,8 +10,7 @@ import cors from 'cors';
 import compression from 'compression';
 import { CustomError } from './utils/custom_error';
 
-// import router from './routes/root.router.js';
-// import limiter from './middlewares/preventSpam.js';
+import router from './routes/root.router';
 
 const app = express();
 
@@ -29,6 +28,8 @@ app.use(
     credentials: true
   })
 );
+
+app.use('/api/v1', router);
 
 app.get('/', (_, res) => {
   res.send('Hello World!');
@@ -52,7 +53,7 @@ app.use((error: CustomError, __: Request, res: Response, _: NextFunction) => {
 });
 
 const server = http.createServer(app);
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 5000;
 
 server.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
