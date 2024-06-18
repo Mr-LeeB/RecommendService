@@ -1,136 +1,69 @@
 import { TfIdf } from 'natural';
-import Vector from 'vector-object';
-import { UserClass } from '~/models/user.model';
+import { Post, UserInteraction } from '~/utils/type';
+class RecommendService {
+  static calculateCosineSimilarity(vecA: number[], vecB: number[]): number {
+    const dotProduct = vecA.reduce((sum, a, idx) => sum + a * vecB[idx], 0);
+    const magnitudeA = Math.sqrt(vecA.reduce((sum, a) => sum + a * a, 0));
+    const magnitudeB = Math.sqrt(vecB.reduce((sum, b) => sum + b * b, 0));
+    return dotProduct / (magnitudeA * magnitudeB);
+  }
 
-interface IData {
-  id: string;
-  description: string;
-}
-interface IProcessedData {
-  id: string;
-  content: string;
-}
-interface IDocumentVector {
-  id: string;
-  vector: Vector;
-}
-
-    const formattedData: IProcessedData[] = [];
-
-    for (const user of users) {
-      const tmpObj: IProcessedData = {
-        id: user._id.toString(),
-        content: user.tags.join(' ')
-      };
-
-      formattedData.push(tmpObj);
+  static getInteractionWeight(interaction: string): number {
+    switch (interaction) {
+      case 'like':
+        return 1;
+      case 'comment':
+        return 2;
+      case 'share':
+        return 3;
+      default:
+        return 0;
     }
+  }
 
-    const documentVectors = this.createVectorsFromDocs(formattedData);
-    const similarities = this.calcSimilarities(documentVectors);
+  static recommendPosts(userId: string, userInteractions: UserInteraction[], posts: Post[], topN: number = 5): Post[] {
+    const userPosts = userInteractions.filter((ui) => ui.user_id === userId).map((ui) => ui.post_id);
+    const tfidfVectorizer = new TfIdf();
 
-    return similarities;
-  };
+    posts.forEach((post) => {
+      tfidfVectorizer.addDocument(post.tags.join(' '), post.post_id);
+    });
 
-  static formatData = (data: IData[][]) => {
-    const formatted: IProcessedData[] = [];
-
-    for (const [key, labels] of Object.entries(data)) {
-      const desc = labels.map((l) => {
-        return l.description.toLowerCase();
+    const userPostVectors = userPosts.map((postId) => {
+      const postIndex = posts.findIndex((post) => post.post_id === postId);
+      const vector: number[] = [];
+      tfidfVectorizer.tfidfs(posts[postIndex].tags.join(' '), (i, measure) => {
+        vector.push(measure);
       });
-
-      const tmpObj: IProcessedData = {
-        id: key,
-        content: desc.join(' ')
-      };
-
-      formatted.push(tmpObj);
-    }
-
-    return formatted;
-  };
-
-  static createVectorsFromDocs = (processedDocs: IProcessedData[]) => {
-    const tfidf = new TfIdf();
-
-    processedDocs.forEach((processedDocument) => {
-      tfidf.addDocument(processedDocument.content);
+      return vector;
+      // return tfidfVectorizer.documents[postIndex];
     });
 
-    const documentVectors = [];
-
-    for (let i = 0; i < processedDocs.length; i += 1) {
-      const processedDocument = processedDocs[i];
-      const obj: { [key: string]: number } = {};
-
-      const items = tfidf.listTerms(i);
-
-      for (let j = 0; j < items.length; j += 1) {
-        const item = items[j];
-        obj[item.term] = item.tfidf;
-      }
-
-      const documentVector = {
-        id: processedDocument.id,
-        vector: new Vector(obj)
-      };
-
-      documentVectors.push(documentVector);
-    }
-    return documentVectors;
-  };
-
-  static calcSimilarities = (docVectors: IDocumentVector[]) => {
-    // number of results that you want to return.
-    const MAX_SIMILAR = 20;
-    // min cosine similarity score that should be returned.
-    const MIN_SCORE = 0.2;
-    const data: { [key: string]: any[] } = {};
-
-    for (let i = 0; i < docVectors.length; i += 1) {
-      const documentVector = docVectors[i];
-      const { id } = documentVector;
-
-      data[id] = [];
-    }
-
-    for (let i = 0; i < docVectors.length; i += 1) {
-      for (let j = 0; j < i; j += 1) {
-        const idi = docVectors[i].id;
-        const vi = docVectors[i].vector;
-        const idj = docVectors[j].id;
-        const vj = docVectors[j].vector;
-        const similarity = vi.getCosineSimilarity(vj);
-
-        if (similarity > MIN_SCORE) {
-          data[idi].push({ id: idj, score: similarity });
-          data[idj].push({ id: idi, score: similarity });
-        }
-      }
-    }
-
-    // finally sort the similar documents by descending order
-    Object.keys(data).forEach((id) => {
-      data[id].sort((a, b) => b.score - a.score);
-
-      if (data[id].length > MAX_SIMILAR) {
-        data[id] = data[id].slice(0, MAX_SIMILAR);
-      }
+    const scores = posts.map((_, idx) => {
+      const postVector: number[] = [];
+      tfidfVectorizer.tfidfs(posts[idx].tags.join(' '), (i, measure) => {
+        postVector.push(measure);
+      });
+      const similarityScores = userPostVectors.map((userVector) =>
+        this.calculateCosineSimilarity(userVector, postVector)
+      );
+      const interactionWeights = userInteractions
+        .filter((ui) => ui.user_id === userId && ui.post_id === posts[idx].post_id)
+        .map((ui) => this.getInteractionWeight(ui.interaction));
+      const weightedScores = similarityScores.map((score, index) => score * (interactionWeights[index] || 1));
+      return weightedScores.reduce((sum, score) => sum + score, 0);
     });
 
-    return data;
-  };
+    console.log(scores.map((score, idx) => ({ score, idx: idx + 1 })));
 
-  static getSimilarDocuments = (id: string, trainedData: IDocumentVector[]) => {
-    const similarDocuments = trainedData[id];
+    const recommendedPostIndices = scores
+      .map((score, idx) => ({ score, idx }))
+      .sort((a, b) => b.score - a.score)
+      .map((item) => item.idx)
+      .filter((idx) => !userPosts.includes(posts[idx].post_id))
+      .slice(0, topN);
 
-    if (similarDocuments === undefined) {
-      return [];
-    }
-
-    return similarDocuments;
-  };
+    return recommendedPostIndices.map((idx) => posts[idx]);
+  }
 }
-
 export default RecommendService;
