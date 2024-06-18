@@ -14,13 +14,6 @@ interface IDocumentVector {
   id: string;
   vector: Vector;
 }
-interface ISimilarDocument {
-  id: string;
-  score: number;
-}
-class RecommendService {
-  static recommendUSer = async (userID: string) => {
-    const users = await UserClass.getAllUsers();
 
     const formattedData: IProcessedData[] = [];
 
