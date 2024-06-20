@@ -1,11 +1,12 @@
 import { TfIdf } from 'natural';
-import { Post, UserInteraction } from '~/utils/type';
+import { Post } from '~/utils/type';
+import UserService from './user.service';
 class RecommendService {
   static calculateCosineSimilarity(vecA: number[], vecB: number[]): number {
     const dotProduct = vecA.reduce((sum, a, idx) => sum + a * vecB[idx], 0);
     const magnitudeA = Math.sqrt(vecA.reduce((sum, a) => sum + a * a, 0));
     const magnitudeB = Math.sqrt(vecB.reduce((sum, b) => sum + b * b, 0));
-    return dotProduct / (magnitudeA * magnitudeB);
+    return magnitudeA * magnitudeB ? dotProduct / (magnitudeA * magnitudeB) : 0;
   }
 
   static getInteractionWeight(interaction: string): number {
@@ -21,7 +22,9 @@ class RecommendService {
     }
   }
 
-  static recommendPosts(userId: string, userInteractions: UserInteraction[], posts: Post[], topN: number = 5): Post[] {
+  static async recommendPosts(userId: string, topN: number = 5): Promise<Post[]> {
+    const { userInteractions, posts } = await UserService.getUserInteractionsAndPosts();
+
     const userPosts = userInteractions.filter((ui) => ui.user_id === userId).map((ui) => ui.post_id);
     const tfidfVectorizer = new TfIdf();
 
@@ -36,25 +39,25 @@ class RecommendService {
         vector.push(measure);
       });
       return vector;
-      // return tfidfVectorizer.documents[postIndex];
     });
 
     const scores = posts.map((_, idx) => {
+      if (posts[idx].tags.length === 0) return 0;
       const postVector: number[] = [];
       tfidfVectorizer.tfidfs(posts[idx].tags.join(' '), (i, measure) => {
         postVector.push(measure);
       });
+
       const similarityScores = userPostVectors.map((userVector) =>
         this.calculateCosineSimilarity(userVector, postVector)
       );
+
       const interactionWeights = userInteractions
         .filter((ui) => ui.user_id === userId && ui.post_id === posts[idx].post_id)
         .map((ui) => this.getInteractionWeight(ui.interaction));
       const weightedScores = similarityScores.map((score, index) => score * (interactionWeights[index] || 1));
       return weightedScores.reduce((sum, score) => sum + score, 0);
     });
-
-    console.log(scores.map((score, idx) => ({ score, idx: idx + 1 })));
 
     const recommendedPostIndices = scores
       .map((score, idx) => ({ score, idx }))
