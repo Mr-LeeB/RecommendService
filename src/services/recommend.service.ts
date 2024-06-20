@@ -1,6 +1,7 @@
 import { TfIdf } from 'natural';
-import { Post } from '~/utils/type';
+import { Post, User } from '~/utils/type';
 import UserService from './user.service';
+import { UserClass } from '~/models/user.model';
 class RecommendService {
   static calculateCosineSimilarity(vecA: number[], vecB: number[]): number {
     const dotProduct = vecA.reduce((sum, a, idx) => sum + a * vecB[idx], 0);
@@ -67,6 +68,48 @@ class RecommendService {
       .slice(0, topN);
 
     return recommendedPostIndices.map((idx) => posts[idx]);
+  }
+
+  static async recommendUsers(userId: string, topN: number = 5): Promise<User[]> {
+    const currentUser = await UserClass.getUserById(userId);
+    if (!currentUser) return [];
+    const users = await UserService.getAllUsers();
+
+    const tfidfVectorizer = new TfIdf();
+
+    users.forEach((user) => {
+      tfidfVectorizer.addDocument(user.tags.join(' '), user.id);
+    });
+
+    const currentUserVectors = [currentUser].map((user) => {
+      const vector: number[] = [];
+      tfidfVectorizer.tfidfs(user.tags.join(' '), (i, measure) => {
+        vector.push(measure);
+      });
+      return vector;
+    });
+
+    const scores = users.map((_, idx) => {
+      if (users[idx].tags.length === 0) return 0;
+      const userVector: number[] = [];
+      tfidfVectorizer.tfidfs(users[idx].tags.join(' '), (i, measure) => {
+        userVector.push(measure);
+      });
+
+      const similarityScores = currentUserVectors.map((currentUserVector) =>
+        this.calculateCosineSimilarity(currentUserVector, userVector)
+      );
+      return similarityScores.reduce((sum, score) => sum + score, 0);
+    });
+
+    const recommendedUserIndices = scores
+      .map((score, idx) => ({ score, idx }))
+      .sort((a, b) => b.score - a.score)
+      .map((item) => item.idx)
+      .filter((idx) => users[idx].id !== userId)
+      .slice(0, topN);
+
+    return recommendedUserIndices.map((idx) => users[idx]);
   }
 }
 export default RecommendService;

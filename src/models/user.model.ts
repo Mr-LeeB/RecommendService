@@ -98,12 +98,6 @@ const UserSchema = new Schema(
 // create index for search
 UserSchema.index({ name: 'text', email: 'text', alias: 'text' });
 
-// lv1   0
-// lv2   50
-// lv3   150
-// lv4   250
-// lv5   400
-
 const UserModel = model(DOCUMENT_NAME, UserSchema);
 class UserClass {
   static async getAllUsers() {
