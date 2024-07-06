@@ -1,8 +1,24 @@
 import { ObjectId } from 'mongoose';
 
-export interface User {
+export interface IUser {
   id: string;
   tags: string[];
+}
+export interface IUserRecommended {
+  _id: string;
+  id_incr: number;
+  name: string;
+  email: string;
+  role: string[];
+  phone_number: string;
+  user_image: string;
+  cover_image: string;
+  tags: string[];
+  alias: string;
+  about: string;
+  level: number;
+  location: string;
+  createdAt: string;
 }
 
 export interface Post {

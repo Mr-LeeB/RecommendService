@@ -1,5 +1,5 @@
 import { TfIdf } from 'natural';
-import { Post, User } from '~/utils/type';
+import { Post, IUser, IUserRecommended } from '~/utils/type';
 import UserService from './user.service';
 import { UserClass } from '~/models/user.model';
 class RecommendService {
@@ -70,7 +70,7 @@ class RecommendService {
     return recommendedPostIndices.map((idx) => posts[idx]);
   }
 
-  static async recommendUsers(userId: string, topN: number = 5): Promise<User[]> {
+  static async recommendUsers(userId: string, topN: number = 5): Promise<IUserRecommended[]> {
     const currentUser = await UserClass.getUserById(userId);
     if (!currentUser) return [];
     const users = await UserService.getAllUsers();
@@ -78,7 +78,7 @@ class RecommendService {
     const tfidfVectorizer = new TfIdf();
 
     users.forEach((user) => {
-      tfidfVectorizer.addDocument(user.tags.join(' '), user.id);
+      tfidfVectorizer.addDocument(user.tags.join(' '), user._id);
     });
 
     const currentUserVectors = [currentUser].map((user) => {
@@ -106,7 +106,7 @@ class RecommendService {
       .map((score, idx) => ({ score, idx }))
       .sort((a, b) => b.score - a.score)
       .map((item) => item.idx)
-      .filter((idx) => users[idx].id !== userId)
+      .filter((idx) => users[idx]._id !== userId)
       .slice(0, topN);
 
     return recommendedUserIndices.map((idx) => users[idx]);

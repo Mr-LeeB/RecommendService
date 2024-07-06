@@ -1,17 +1,30 @@
 import { Post, UserInteraction } from './../utils/type';
 import { UserClass } from '~/models/user.model';
-import { User } from '~/utils/type';
+import { IUserRecommended } from '~/utils/type';
 import PostService from './post.service';
 
 class UserService {
   static async getAllUsers() {
     const users = await UserClass.getAllUsers();
 
-    const result: User[] = [];
+    const result: IUserRecommended[] = [];
+
     users.forEach((user) => {
       result.push({
-        id: user._id.toString(),
-        tags: (user.tags as string[]) || []
+        _id: user._id.toString(),
+        id_incr: user.id_incr as number,
+        name: user.name as string,
+        email: user.email as string,
+        role: user.role as string[],
+        phone_number: (user.phone_number as string) || '',
+        user_image: user.user_image as string,
+        cover_image: user.cover_image as string,
+        tags: user.tags as string[],
+        alias: user.alias as string,
+        about: user.about as string,
+        level: user.level as number,
+        location: user.location as string,
+        createdAt: user.createdAt.toString()
       });
     });
 
