@@ -73,7 +73,7 @@ class RecommendService {
   static async recommendUsers(userId: string, topN: number = 5): Promise<IUserRecommended[]> {
     const currentUser = await UserClass.getUserById(userId);
     if (!currentUser) return [];
-    const users = await UserService.getAllUsers();
+    const users = await UserService.getAllUsers(userId);
 
     const tfidfVectorizer = new TfIdf();
 

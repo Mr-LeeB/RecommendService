@@ -2,14 +2,17 @@ import { Post, UserInteraction } from './../utils/type';
 import { UserClass } from '~/models/user.model';
 import { IUserRecommended } from '~/utils/type';
 import PostService from './post.service';
+import { FriendClass } from '~/models/friend.model';
 
 class UserService {
-  static async getAllUsers() {
+  static async getAllUsers(userId: string) {
     const users = await UserClass.getAllUsers();
+    const friends = await FriendClass.getAllFriends(userId);
+    const listRecommendUsers = users.filter((user) => !friends.includes(user._id));
 
     const result: IUserRecommended[] = [];
 
-    users.forEach((user) => {
+    listRecommendUsers.forEach((user) => {
       result.push({
         _id: user._id.toString(),
         id_incr: user.id_incr as number,
