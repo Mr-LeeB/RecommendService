@@ -23,12 +23,10 @@ app.use(json());
 app.use(urlencoded({ extended: true }));
 app.use(
   cors({
-    origin: [process.env.CLIENT_URL || 'http://localhost:3000'],
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
-    credentials: true
+    origin: [process.env.CLIENT_URL || 'http://localhost:3000']
   })
 );
-
+console.log(process.env.CLIENT_URL);
 app.use('/api/v1', router);
 
 app.get('/', (_, res) => {
