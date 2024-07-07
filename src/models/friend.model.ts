@@ -1,7 +1,6 @@
 'use strict';
 import { model, Schema } from 'mongoose';
-import { getSelectData, convertToObjectIDMongoDB } from '../utils/functions';
-import { se_UserDefault } from '../utils/constants';
+import { convertToObjectIDMongoDB } from '../utils/functions';
 
 const ObjectId = Schema.Types.ObjectId;
 

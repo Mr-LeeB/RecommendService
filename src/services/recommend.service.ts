@@ -1,7 +1,7 @@
 import { TfIdf } from 'natural';
-import { Post, IUser, IUserRecommended } from '~/utils/type';
 import UserService from './user.service';
-import { UserClass } from '~/models/user.model';
+import { IUserRecommended, Post } from '../utils/type';
+import { UserClass } from '../models/user.model';
 class RecommendService {
   static calculateCosineSimilarity(vecA: number[], vecB: number[]): number {
     const dotProduct = vecA.reduce((sum, a, idx) => sum + a * vecB[idx], 0);

@@ -1,7 +1,8 @@
 'use strict';
 
 import { model, Schema, Types } from 'mongoose';
-import { IPost } from '~/utils/type';
+import { IPost } from '../utils/type';
+
 const ObjectId = Types.ObjectId;
 
 const DOCUMENT_NAME = 'Post';

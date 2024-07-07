@@ -1,8 +1,8 @@
 'use strict';
 
 import { Request, Response } from 'express';
-import { OK } from '~/core/success.response';
-import RecommendService from '~/services/recommend.service';
+import RecommendService from '../services/recommend.service';
+import { OK } from '../core/success.response';
 
 class RecommendController {
   static async recommendPosts(req: Request, res: Response) {

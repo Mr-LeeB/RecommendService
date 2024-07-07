@@ -1,8 +1,7 @@
 'use strict';
 import { Router } from 'express';
+import RecommendController from '../controllers/recommend.controller';
 const router = Router();
-
-import RecommendController from '~/controllers/recommend.controller';
 
 // router.get('/', RecommendController.getRecommend);
 router.get('/users/:userID', RecommendController.recommendUsers);

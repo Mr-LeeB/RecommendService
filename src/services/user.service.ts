@@ -1,8 +1,7 @@
-import { Post, UserInteraction } from './../utils/type';
-import { UserClass } from '~/models/user.model';
-import { IUserRecommended } from '~/utils/type';
+import { FriendClass } from '../models/friend.model';
+import { UserClass } from '../models/user.model';
+import { IUserRecommended, Post, UserInteraction } from '../utils/type';
 import PostService from './post.service';
-import { FriendClass } from '~/models/friend.model';
 
 class UserService {
   static async getAllUsers(userId: string) {
