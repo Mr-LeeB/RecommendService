@@ -1,7 +1,8 @@
 import { TfIdf } from 'natural';
 import UserService from './user.service';
-import { IUserRecommended, Post } from '../utils/type';
+import { ICommunity, IUserRecommended, Post } from '../utils/type';
 import { UserClass } from '../models/user.model';
+import CommunityService from './community.service';
 class RecommendService {
   static calculateCosineSimilarity(vecA: number[], vecB: number[]): number {
     const dotProduct = vecA.reduce((sum, a, idx) => sum + a * vecB[idx], 0);
@@ -110,6 +111,48 @@ class RecommendService {
       .slice(0, topN);
 
     return recommendedUserIndices.map((idx) => users[idx]);
+  }
+
+  static async recommendCommunities(userId: string, topN: number = 5): Promise<ICommunity[]> {
+    const currentUser = await UserClass.getUserById(userId);
+    if (!currentUser) return [];
+    const communities = await CommunityService.getAllCommunities(userId);
+
+    const tfidfVectorizer = new TfIdf();
+
+    communities.forEach((community) => {
+      tfidfVectorizer.addDocument(community.tags.join(' '), community._id);
+    });
+
+    const currentUserVectors = [currentUser].map((user) => {
+      const vector: number[] = [];
+      tfidfVectorizer.tfidfs(user.tags.join(' '), (i, measure) => {
+        vector.push(measure);
+      });
+      return vector;
+    });
+
+    const scores = communities.map((_, idx) => {
+      if (communities[idx].tags.length === 0) return 0;
+      const communityVector: number[] = [];
+      tfidfVectorizer.tfidfs(communities[idx].tags.join(' '), (i, measure) => {
+        communityVector.push(measure);
+      });
+
+      const similarityScores = currentUserVectors.map((currentUserVector) =>
+        this.calculateCosineSimilarity(currentUserVector, communityVector)
+      );
+      return similarityScores.reduce((sum, score) => sum + score, 0);
+    });
+
+    const recommendedUserIndices = scores
+      .map((score, idx) => ({ score, idx }))
+      .sort((a, b) => b.score - a.score)
+      .map((item) => item.idx)
+      .filter((idx) => communities[idx]._id !== userId)
+      .slice(0, topN);
+
+    return recommendedUserIndices.map((idx) => communities[idx]);
   }
 }
 export default RecommendService;

@@ -6,5 +6,6 @@ const router = Router();
 // router.get('/', RecommendController.getRecommend);
 router.get('/users/:userID', RecommendController.recommendUsers);
 router.get('/posts/:userID', RecommendController.recommendPosts);
+router.get('/communities/:userID', RecommendController.recommendCommunities);
 
 export default router;

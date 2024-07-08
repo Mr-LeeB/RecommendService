@@ -72,3 +72,30 @@ export interface TypeOfLink {
   description: string;
   image: string;
 }
+
+export interface ICommunity {
+  _id: string;
+  name: string;
+  image: string;
+  about: string;
+  tags: string[];
+  rules: {
+    title: string;
+    content: string;
+  }[];
+  visibility: Visibility;
+  creator: string;
+  author: string;
+  posts: IPost[];
+  members: string[];
+  recently_joined: string[];
+  admins: string[];
+  waitlist_users: string[];
+  waitlist_posts: string[];
+  post_number: number;
+  member_number: number;
+  admin_number: number;
+  waitlist_user_number: number;
+  waitlist_post_number: number;
+  createdAt: string;
+}
